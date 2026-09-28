@@ -30,6 +30,12 @@ type ClickEvent struct {
 }
 
 func main() {
+
+	// Health check mode for ECS/Docker: distroless has no curl, so the binary checks itself
+	if len(os.Args) > 1 && os.Args[1] == "-healthcheck" {
+		os.Exit(runHealthcheck())
+	}
+
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL is required")
@@ -205,6 +211,20 @@ func processClickEvent(raw string) error {
 	)
 
 	return err
+}
+
+// Calls the worker's own /healthz and returns an exit code for Docker/ECS: 0 = healthy, 1 = unhealthy
+func runHealthcheck() int {
+	client := http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://localhost:" + getEnv("HEALTH_PORT", "8090") + "/healthz")
+	if err != nil {
+		return 1
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+	return 0
 }
 
 func getEnv(key, fallback string) string {
