@@ -48,3 +48,45 @@ services:
 
 volumes:
   pgdata:
+
+  localstack:
+    image: localstack/localstack
+    environment:
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+      SERVICES: sqs
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./localstack/init-sqs.sh:/etc/localstack/init/ready.d/init-sqs.sh
+
+  api:
+    build: ./app
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://app:localdev@postgres:5432/shortener
+      REDIS_URL: redis://redis:6379
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/click-events
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: eu-west-2
+      AWS_DEFAULT_REGION: eu-west-2
+      PORT: "8080"
+    depends_on:
+      - postgres
+      - redis
+      - localstack
+
+  worker:
+    build: ./services/worker
+    environment:
+      DATABASE_URL: postgres://app:localdev@postgres:5432/shortener?sslmode=disable
+      SQS_QUEUE_URL: http://localstack:4566/000000000000/click-events
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: eu-west-2
+    depends_on:
+      - postgres
+      - localstack
