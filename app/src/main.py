@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 import os, hashlib, time, json
 from .db import put_mapping, get_mapping, get_backend_type, increment_clicks
 from .events import publish_click_event
+from .cache import get_cached_url, cache_url
 
 app = FastAPI()
 
@@ -22,6 +23,8 @@ async def shorten(req: Request):
     put_mapping(short, url)
     base_url = os.environ.get("BASE_URL", "")
     return {"short": short, "url": url, "short_url": f"{base_url}/{short}" if base_url else short}
+    put_mapping(short, url)
+    cache_url(short, url)
 
 
 @app.get("/stats/{short_id}")
@@ -34,9 +37,14 @@ def stats(short_id: str):
 
 @app.get("/{short_id}")
 def resolve(short_id: str, request: Request):
-    item = get_mapping(short_id)
-    if not item:
-        raise HTTPException(404, "not found")
+    # Check the cache first, fall back to the database on a miss
+    url = get_cached_url(short_id)
+    if url is None:
+        item = get_mapping(short_id)
+        if not item:
+            raise HTTPException(404, "not found")
+        url = item["url"]
+        cache_url(short_id, url)
 
     # Increment click count
     increment_clicks(short_id)
@@ -49,4 +57,4 @@ def resolve(short_id: str, request: Request):
         referer=request.headers.get("referer", ""),
     )
 
-    return RedirectResponse(item["url"])
+    return RedirectResponse(url)
