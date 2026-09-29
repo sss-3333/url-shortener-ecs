@@ -18,3 +18,18 @@ variable "az_count" {
   type        = number
   default     = 2
 }
+
+variable "services" {
+  type    = list(string)
+  default = ["api", "worker", "dashboard"]
+}
+
+variable "db_instance_class" {
+  type    = string
+  default = "db.t4g.micro"
+}
+
+variable "redis_node_type" {
+  type    = string
+  default = "cache.t4g.micro"
+}
