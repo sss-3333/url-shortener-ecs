@@ -96,3 +96,23 @@ module "waf" {
   project = var.project
   alb_arn = module.alb.alb_arn
 }
+
+module "ecs" {
+  source = "./modules/ecs"
+
+  project            = var.project
+  aws_region         = var.aws_region
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_ids = module.security.service_security_group_ids
+
+  database_url_secret_arn = module.rds.database_url_secret_arn
+  sqs_queue_url           = module.sqs.queue_url
+  sqs_queue_arn           = module.sqs.queue_arn
+  redis_url               = module.redis.redis_url
+  api_base_url            = "https://${local.api_hostname}"
+
+  api_target_group_arn       = module.alb.api_target_group_arn
+  api_target_group_names     = module.alb.api_target_group_names
+  https_listener_arn         = module.alb.https_listener_arn
+  dashboard_target_group_arn = module.alb.dashboard_target_group_arn
+}

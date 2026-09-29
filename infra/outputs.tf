@@ -33,3 +33,19 @@ output "api_url" {
 output "dashboard_url" {
   value = "https://${local.dashboard_hostname}"
 }
+
+output "ecs_cluster_name" {
+  value = module.ecs.cluster_name
+}
+
+output "ecs_service_names" {
+  value = module.ecs.service_names
+}
+
+output "codedeploy_app_name" {
+  value = module.ecs.codedeploy_app_name
+}
+
+output "codedeploy_deployment_group_name" {
+  value = module.ecs.codedeploy_deployment_group_name
+}
