@@ -1,5 +1,11 @@
-output "github_actions_role_arn" {
-  value = aws_iam_role.github_actions.arn
+output "deploy_role_arn" {
+  description = "Set as AWS_DEPLOY_ROLE_ARN in GitHub"
+  value       = aws_iam_role.deploy.arn
+}
+
+output "terraform_role_arn" {
+  description = "Set as AWS_TERRAFORM_ROLE_ARN in GitHub"
+  value       = aws_iam_role.terraform.arn
 }
 
 output "ecr_repository_urls" {
