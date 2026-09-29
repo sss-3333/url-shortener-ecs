@@ -21,3 +21,15 @@ output "redis_url" {
 output "sqs_queue_url" {
   value = module.sqs.queue_url
 }
+
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
+}
+
+output "api_url" {
+  value = "https://${local.api_hostname}"
+}
+
+output "dashboard_url" {
+  value = "https://${local.dashboard_hostname}"
+}

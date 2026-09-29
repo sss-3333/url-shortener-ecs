@@ -33,3 +33,19 @@ variable "redis_node_type" {
   type    = string
   default = "cache.t4g.micro"
 }
+
+variable "domain_name" {
+  description = "Hosted zone to use. Temporarily trackance.co.uk until the project's own domain is registered"
+  type        = string
+  default     = "trackance.co.uk"
+}
+
+variable "api_subdomain" {
+  type    = string
+  default = "go"
+}
+
+variable "dashboard_subdomain" {
+  type    = string
+  default = "dashboard"
+}
