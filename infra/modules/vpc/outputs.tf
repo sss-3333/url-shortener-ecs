@@ -7,7 +7,7 @@ output "vpc_cidr" {
 }
 
 output "public_subnet_ids" {
-  value = aws_subnet.public[*].id
+  value      = aws_subnet.public[*].id
   depends_on = [aws_route_table_association.public]
 }
 

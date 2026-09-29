@@ -1,3 +1,10 @@
+locals {
+  services = {
+    api       = var.api
+    dashboard = var.dashboard
+  }
+}
+
 # ---- Security group: open to the internet on 80/443, and only able to reach the services ----
 
 resource "aws_security_group" "alb" {
@@ -29,7 +36,7 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "to_service" {
-  for_each = var.services
+  for_each = local.services
 
   security_group_id            = aws_security_group.alb.id
   description                  = "To the ${each.key} tasks"
@@ -41,7 +48,7 @@ resource "aws_vpc_security_group_egress_rule" "to_service" {
 
 # The other side of the same connection: each service accepts traffic only from the ALB
 resource "aws_vpc_security_group_ingress_rule" "from_alb" {
-  for_each = var.services
+  for_each = local.services
 
   security_group_id            = each.value.security_group_id
   description                  = "From the ALB"
@@ -62,15 +69,13 @@ resource "aws_lb" "this" {
   drop_invalid_header_fields = true
 }
 
-# ---- Target groups: blue and green per service ----
-# CodeDeploy starts the new version in whichever group is idle, then moves traffic across.
-# The two roles alternate: after one deploy green is live, on the next deploy blue takes over again.
+# ---- Target groups ----
+# API: blue and green. CodeDeploy starts the new version in the idle one, then shifts traffic.
+# Dashboard: one group, since it uses rolling deploys.
 
-resource "aws_lb_target_group" "blue" {
-  for_each = var.services
-
-  name        = "${var.project}-${each.key}-blue"
-  port        = each.value.port
+resource "aws_lb_target_group" "api_blue" {
+  name        = "${var.project}-api-blue"
+  port        = var.api.port
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = var.vpc_id
@@ -88,11 +93,28 @@ resource "aws_lb_target_group" "blue" {
   }
 }
 
-resource "aws_lb_target_group" "green" {
-  for_each = var.services
+resource "aws_lb_target_group" "api_green" {
+  name        = "${var.project}-api-green"
+  port        = var.api.port
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
 
-  name        = "${var.project}-${each.key}-green"
-  port        = each.value.port
+  deregistration_delay = 30
+
+  health_check {
+    path                = "/healthz"
+    matcher             = "200"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_target_group" "dashboard" {
+  name        = "${var.project}-dashboard"
+  port        = var.dashboard.port
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = var.vpc_id
@@ -127,6 +149,8 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# The API lives on the default action because CodeDeploy can only shift traffic there, not on rules.
+# CodeDeploy flips it between blue and green on every deploy, so Terraform ignores it after creation.
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
   port              = 443
@@ -134,47 +158,40 @@ resource "aws_lb_listener" "https" {
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = var.certificate_arn
 
-  # Requests for any hostname we don't serve (e.g. the raw ALB address) get a 404
   default_action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "Not found"
-      status_code  = "404"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api_blue.arn
   }
+
+  lifecycle {
+    ignore_changes = [default_action]
+  }
+
+  # After a deploy the listener may point at green. This makes destroy remove the listener
+  # before the green target group, otherwise AWS refuses to delete a target group still in use.
+  depends_on = [aws_lb_target_group.api_green]
 }
 
-# Host-based routing: each hostname goes to its own service.
-# Starts on blue. CodeDeploy then switches this rule between blue and green on every deploy,
-# so Terraform ignores the action, otherwise the next apply would undo a live deploy.
-resource "aws_lb_listener_rule" "host" {
-  for_each = var.services
-
+resource "aws_lb_listener_rule" "dashboard" {
   listener_arn = aws_lb_listener.https.arn
-  priority     = each.value.priority
+  priority     = 10
 
   condition {
     host_header {
-      values = [each.value.hostname]
+      values = [var.dashboard.hostname]
     }
   }
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.blue[each.key].arn
-  }
-
-  lifecycle {
-    ignore_changes = [action]
+    target_group_arn = aws_lb_target_group.dashboard.arn
   }
 }
 
 # ---- DNS ----
 
 resource "aws_route53_record" "service" {
-  for_each = var.services
+  for_each = local.services
 
   zone_id = var.zone_id
   name    = each.value.hostname

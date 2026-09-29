@@ -18,12 +18,20 @@ variable "zone_id" {
   type = string
 }
 
-variable "services" {
-  description = "Services the ALB routes to, keyed by name"
-  type = map(object({
+variable "api" {
+  description = "API: served on the listener's default action so CodeDeploy can shift traffic blue/green"
+  type = object({
     port              = number
     hostname          = string
-    priority          = number
     security_group_id = string
-  }))
+  })
+}
+
+variable "dashboard" {
+  description = "Dashboard: served on a host rule, deployed with rolling updates"
+  type = object({
+    port              = number
+    hostname          = string
+    security_group_id = string
+  })
 }

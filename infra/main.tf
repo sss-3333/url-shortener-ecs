@@ -77,19 +77,16 @@ module "alb" {
   certificate_arn   = module.acm.certificate_arn
   zone_id           = data.aws_route53_zone.this.zone_id
 
-  services = {
-    api = {
-      port              = 8080
-      hostname          = local.api_hostname
-      priority          = 10
-      security_group_id = module.security.service_security_group_ids["api"]
-    }
-    dashboard = {
-      port              = 8081
-      hostname          = local.dashboard_hostname
-      priority          = 20
-      security_group_id = module.security.service_security_group_ids["dashboard"]
-    }
+  api = {
+    port              = 8080
+    hostname          = local.api_hostname
+    security_group_id = module.security.service_security_group_ids["api"]
+  }
+
+  dashboard = {
+    port              = 8081
+    hostname          = local.dashboard_hostname
+    security_group_id = module.security.service_security_group_ids["dashboard"]
   }
 }
 
