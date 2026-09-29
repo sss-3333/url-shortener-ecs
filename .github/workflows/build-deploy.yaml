@@ -1,0 +1,127 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "services/**"
+      - ".github/deploy/**"
+      - ".github/workflows/build-deploy.yaml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write        # OIDC login to AWS
+  contents: read
+  security-events: write # upload Grype results to the Security tab
+
+# Never run two releases at once: overlapping CodeDeploy deployments would fail
+concurrency:
+  group: build-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-2
+  PROJECT: url-shortener
+
+jobs:
+  build-deploy:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # one service failing shouldn't cancel the others mid-deploy
+      matrix:
+        include:
+          - service: api
+            context: ./app
+          - service: worker
+            context: ./services/worker
+          - service: dashboard
+            context: ./services/dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        id: build
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.PROJECT }}-${{ matrix.service }}:${{ github.sha }}
+        run: |
+          docker build --platform linux/amd64 --provenance=false -t "$IMAGE" ${{ matrix.context }}
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Scan image with Grype
+        id: scan
+        uses: anchore/scan-action@v6
+        with:
+          image: ${{ steps.build.outputs.image }}
+          fail-build: false
+          severity-cutoff: critical
+          output-format: sarif
+
+      - name: Upload scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: grype-${{ matrix.service }}
+
+      - name: Push image
+        run: docker push "${{ steps.build.outputs.image }}"
+
+      # Start from the task definition that's live now, so env vars, secrets and roles carry over
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.PROJECT }}-${{ matrix.service }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Swap in the new image
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ matrix.service }}
+          image: ${{ steps.build.outputs.image }}
+
+      - name: Deploy API (CodeDeploy blue/green)
+        if: matrix.service == 'api'
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.PROJECT }}
+          service: ${{ env.PROJECT }}-api
+          codedeploy-appspec: .github/deploy/appspec-api.yaml
+          codedeploy-application: ${{ env.PROJECT }}
+          codedeploy-deployment-group: ${{ env.PROJECT }}-api
+          wait-for-service-stability: true
+          wait-for-minutes: 30
+
+      - name: Deploy ${{ matrix.service }} (rolling + circuit breaker)
+        if: matrix.service != 'api'
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.PROJECT }}
+          service: ${{ env.PROJECT }}-${{ matrix.service }}
+          wait-for-service-stability: true
+          wait-for-minutes: 15
+
+  smoke-test:
+    needs: build-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: API health
+        run: curl -fsS --retry 5 --retry-delay 10 "${{ vars.API_URL }}/healthz"
+
+      - name: Dashboard health
+        run: curl -fsS --retry 5 --retry-delay 10 "${{ vars.DASHBOARD_URL }}/healthz"
