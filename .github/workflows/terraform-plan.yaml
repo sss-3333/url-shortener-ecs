@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "infra/**"
-      - ".github/workflows/terraform-*.yml"
+      - ".github/workflows/terraform-*.yaml"
 
 permissions:
   id-token: write
