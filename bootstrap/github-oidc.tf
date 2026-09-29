@@ -191,8 +191,14 @@ data "aws_iam_policy_document" "terraform" {
   # Terraform only reads the repos (for the image digest); bootstrap owns them
   statement {
     sid       = "EcrRead"
-    actions   = ["ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:ListImages"]
+    actions = [
+      "ecr:DescribeRepositories",
+      "ecr:DescribeImages",
+      "ecr:ListImages",
+      "ecr:ListTagsForResource",
+    ]
     resources = [for repo in aws_ecr_repository.this : repo.arn]
+    
   }
 
   # Records only. No CreateHostedZone or DeleteHostedZone, so it can never remove a zone
