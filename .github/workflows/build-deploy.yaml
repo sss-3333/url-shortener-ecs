@@ -25,8 +25,28 @@ env:
   PROJECT: url-shortener
 
 jobs:
+  # Unit tests run first: nothing is built or deployed unless they pass
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest==8.3.3 httpx==0.27.2
+
+      - name: Run tests
+        run: python -m pytest -v tests
+
   build-deploy:
     name: ${{ matrix.service }}
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false   # one service failing shouldn't cancel the others mid-deploy
