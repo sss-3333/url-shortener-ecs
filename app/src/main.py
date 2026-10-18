@@ -4,9 +4,18 @@ import os, hashlib, time, json
 from .db import put_mapping, get_mapping, get_backend_type, increment_clicks
 from .events import publish_click_event
 from .cache import get_cached_url, cache_url
+from fastapi.responses import RedirectResponse, HTMLResponse
+from pathlib import Path
 
 app = FastAPI()
 
+# Simple frontend: one static page served by the API itself
+INDEX_HTML = (Path(__file__).parent / "index.html").read_text()
+
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return INDEX_HTML
 
 @app.get("/healthz")
 def health():
