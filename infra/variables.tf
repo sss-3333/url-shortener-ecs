@@ -1,3 +1,4 @@
+# Variables for the main stack (testing tf plan pipeline)
 variable "aws_region" {
   type    = string
   default = "eu-west-2"
