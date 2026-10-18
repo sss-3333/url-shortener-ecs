@@ -17,11 +17,8 @@
   <input id="url" type="url" placeholder="https://example.com/a/very/long/link">
   <button onclick="shorten()">Shorten</button>
   <p id="result"></p>
-  <p><a id="dash" href="#">View click analytics</a></p>
 
   <script>
-    // The dashboard lives on the dashboard. subdomain
-    document.getElementById("dash").href = location.origin.replace("//go.", "//dashboard.");
 
     async function shorten() {
       const url = document.getElementById("url").value.trim();
