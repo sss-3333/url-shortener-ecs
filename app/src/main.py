@@ -4,13 +4,17 @@ import os, hashlib, time, json
 from .db import put_mapping, get_mapping, get_backend_type, increment_clicks
 from .events import publish_click_event
 from .cache import get_cached_url, cache_url
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-
 @app.get("/healthz")
 def health():
-    return {"status": "ok", "ts": int(time.time()), "db": get_backend_type()}
+    # ROLLBACK TEST: same body, but a 500 so the ALB health check fails
+    return JSONResponse(
+        status_code=500,
+        content={"status": "ok", "ts": int(time.time()), "db": get_backend_type()},
+    )
 
 
 @app.post("/shorten")
