@@ -115,22 +115,22 @@ docker compose down
 
 ## CI/CD Workflows
 
-- **Build and Deploy**: tests, builds and scans the images, pushes to ECR, then deploys
+### Build and Deploy**: tests, builds and scans the images, pushes to ECR, then deploys
 
 <img width="1535" height="609" alt="Screenshot 2026-10-18 215418" src="https://github.com/user-attachments/assets/a0694a26-7136-42c8-83dc-2c583aea062b" />
 
 
-- **Terraform Plan**: runs on pull requests that change `infra/`
+### Terraform Plan**: runs on pull requests that change `infra/`
 
 <img width="1535" height="554" alt="Screenshot 2026-10-19 004628" src="https://github.com/user-attachments/assets/deeb46c7-f064-4f0f-bf6a-923d3390c89d" />
 
 
-- **Terraform Deploy**: applies infrastructure changes on merge to `main`
+### Terraform Deploy**: applies infrastructure changes on merge to `main`
 
 <img width="1527" height="460" alt="Screenshot 2026-10-18 215438" src="https://github.com/user-attachments/assets/02dbfc9e-3193-4f32-8f4c-1ebac79bee16" />
 
 
-- **Terraform Destroy**: manual teardown
+### Terraform Destroy**: manual teardown
 
 <img width="1535" height="556" alt="Screenshot 2026-10-19 021448" src="https://github.com/user-attachments/assets/b3d2af5a-e290-401c-b31b-d61d8d2e60b1" />
 
@@ -143,7 +143,7 @@ docker compose down
 4. **Worker and dashboard:** tasks are replaced one at a time, with automatic rollback on failure
 5. A smoke test checks both services through the real domain
 
-### Rollback Test
+## Rollback Test
 
 I deployed an API version with a failing health check. CodeDeploy sent it 0% of traffic, timed out after 60 minutes and rolled back automatically, while the live site returned 200 throughout.
 
