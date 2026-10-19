@@ -131,7 +131,8 @@ docker compose down
 
 - **Terraform Destroy**: manual teardown
 
-<!-- screenshot -->
+<img width="1535" height="556" alt="Screenshot 2026-10-19 021448" src="https://github.com/user-attachments/assets/b3d2af5a-e290-401c-b31b-d61d8d2e60b1" />
+
 
 ### Deployment Workflow
 
