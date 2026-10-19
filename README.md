@@ -3,6 +3,12 @@
 A URL shortener that tracks every click, running as three services on Amazon ECS Fargate. The infrastructure is built with Terraform and deployed through GitHub Actions, with blue/green releases for the API and no NAT gateway.
 The application code was provided by CoderCo. The containerisation, infrastructure, pipelines and the changes listed below are mine.
 
+## Video Demo
+
+
+https://github.com/user-attachments/assets/53764db2-4dde-46e4-8733-3a2edf9313bb
+
+
 ### Project Overview
 
 - **Terraform** provisions all AWS infrastructure
@@ -26,13 +32,13 @@ The application code was provided by CoderCo. The containerisation, infrastructu
 
 ```text
 url-shortener-ecs/
-├── .github/workflows/     # build-deploy, terraform plan/deploy/destroy
-├── app/                   # Python API and frontend page
+├── .github/workflows/     
+├── app/                   
 ├── services/
-│   ├── worker/            # Go: SQS click events -> Postgres
-│   └── dashboard/         # Go: analytics API
-├── bootstrap/             # state bucket, ECR repos, GitHub OIDC roles
-├── infra/                 # main stack, split into modules
+│   ├── worker/            
+│   └── dashboard/         
+├── bootstrap/            
+├── infra/                 
 ├── docker-compose.yml
 └── README.md
 ```
@@ -110,15 +116,18 @@ docker compose down
 
 - **Build and Deploy**: tests, builds and scans the images, pushes to ECR, then deploys
 
-<!-- screenshot -->
+<img width="1535" height="609" alt="Screenshot 2026-10-18 215418" src="https://github.com/user-attachments/assets/a0694a26-7136-42c8-83dc-2c583aea062b" />
+
 
 - **Terraform Plan**: runs on pull requests that change `infra/`
 
-<!-- screenshot -->
+<img width="1535" height="554" alt="Screenshot 2026-10-19 004628" src="https://github.com/user-attachments/assets/deeb46c7-f064-4f0f-bf6a-923d3390c89d" />
+
 
 - **Terraform Deploy**: applies infrastructure changes on merge to `main`
 
-<!-- screenshot -->
+<img width="1527" height="460" alt="Screenshot 2026-10-18 215438" src="https://github.com/user-attachments/assets/02dbfc9e-3193-4f32-8f4c-1ebac79bee16" />
+
 
 - **Terraform Destroy**: manual teardown
 
@@ -136,8 +145,13 @@ docker compose down
 
 I deployed an API version with a failing health check. CodeDeploy sent it 0% of traffic, timed out after 60 minutes and rolled back automatically, while the live site returned 200 throughout.
 
-<!-- rollback screenshots -->
+<img width="1536" height="1024" alt="Screenshot 2026-10-18 174700" src="https://github.com/user-attachments/assets/89ba0675-f497-4f30-88a3-605479cc38d2" />
+<img width="1536" height="1024" alt="Screenshot 2026-10-18 175007" src="https://github.com/user-attachments/assets/3391206e-c880-4b4b-a688-b8ae8cc257aa" />
+<img width="1536" height="1024" alt="Screenshot 2026-10-18 175454" src="https://github.com/user-attachments/assets/f68a6d05-795c-43c5-aba4-9f2730e46c10" />
 
-## Screenshots
 
-<!-- frontend, dashboard summary, ECS services running -->
+## Dashboard and ECS Services
+<img width="1536" height="1024" alt="Screenshot 2026-10-18 214507" src="https://github.com/user-attachments/assets/613d4975-4ac1-4f1d-89e5-2c1ca35abce7" />
+<img width="1536" height="1024" alt="Screenshot 2026-10-18 214722" src="https://github.com/user-attachments/assets/8b596e13-6111-4400-9fe7-f16f0ecdac4f" />
+<img width="953" height="121" alt="Screenshot 2026-10-18 214821" src="https://github.com/user-attachments/assets/2465ef71-a45d-42b2-b472-4ab25e87299f" />
+
