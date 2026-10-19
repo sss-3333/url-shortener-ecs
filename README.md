@@ -26,7 +26,8 @@ https://github.com/user-attachments/assets/53764db2-4dde-46e4-8733-3a2edf9313bb
 
 ## Architecture Diagram
 
-![Architecture](screenshots/url-shortener-architecture.png)
+<img width="1895" height="1157" alt="url-shortener-architecture" src="https://github.com/user-attachments/assets/5f02ae55-9552-4d72-9443-f06b404b1f2c" />
+
 
 ## Project Structure
 
